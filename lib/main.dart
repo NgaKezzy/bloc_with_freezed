@@ -33,10 +33,20 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> implements IncrementAction {
+class _MyHomePageState extends State<MyHomePage> {
+  final TextEditingController _textController = TextEditingController();
+
   @override
-  void increment() {
-    context.read<CounterBloc>().add(CounterEvent.increment());
+  void initState() {
+    super.initState();
+    context.read<CounterBloc>().add(const CounterEvent.initConnection());
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    context.read<CounterBloc>().add(const CounterEvent.close());
+    super.dispose();
   }
 
   @override
@@ -49,46 +59,42 @@ class _MyHomePageState extends State<MyHomePage> implements IncrementAction {
       ),
       body: BlocBuilder<CounterBloc, CounterState>(
         builder: (context, state) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const Text('You have pushed the button this many times:'),
-                Text(
-                  '${state.count}',
-                  style: Theme.of(context).textTheme.headlineMedium,
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount: state.messages.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(title: Text(state.messages[index]));
+                  },
                 ),
-                ChildWidget(action: this),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.read<CounterBloc>().add(CounterEvent.increment());
-        },
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      bottomNavigationBar: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.only(bottom: 30),
+            width: 200,
+            child: TextField(
+              controller: _textController,
+              decoration: const InputDecoration(hintText: "Enter message"),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<CounterBloc>().add(
+                CounterEvent.sendMessage(_textController.text),
+              );
+              _textController.clear();
+            },
+            child: const Text("Send"),
+          ),
+        ],
       ),
-    );
-  }
-}
-
-abstract class IncrementAction {
-  void increment();
-}
-
-class ChildWidget extends StatelessWidget {
-  final IncrementAction action;
-
-  const ChildWidget({super.key, required this.action});
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: action.increment,
-      child: Text("Child Button"),
     );
   }
 }
